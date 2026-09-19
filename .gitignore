@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 Thinking Developer
+#
+# PodumatOS — a hobby operating system for x86_64.
+
+# build artifacts
+build/
+obj/
+bin/
+out/
+*.o
+*.a
+*.elf
+*.bin
+*.map
+*.sym
+
+# ISO and disk images
+*.iso
+*.img
+*.hdd
+*.qcow2
+*.vdi
+*.vmdk
+
+# limine
+/limine-binary
+/limine-binary.tar.gz
+/limine-cxx-template-trunk
+/edk2-ovmf-bins
+/edk2-ovmf-bins.tar.gz
+/iso_root
+
+# editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.cproject
+.kdev4/
+*.code-workspace
+
+# Qt Creator
+*.config
+*.creator
+*.creator.user
+*.creator.user.*
+*.files
+*.includes
+*.cflags
+*.cxxflags
+*.autosave
+
+# language servers
+.clangd
+.clang_complete
+.ccls-cache
+
+# cscope / ctags
+cscope.*
+tags
+TAGS
+
+# vim / neovim
+.vim/
+.exrc
+
+# os junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# compiler / debugger
+*.d
+*.gcno
+*.gcda
+*.gcov
+*.dSYM/
+core
+core.*
+vgcore.*
+
+# temporary / backup files
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+*.#*
+\#*\#
+
+# logs
+*.log
+log/
+logs/
+
+# tools / package managers
+.cache/
+compile_commands.json
