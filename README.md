@@ -79,6 +79,13 @@
 | **Console** | Framebuffer text console |
 | **Shell** | Interactive |
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/cli_menu.png" width="700" alt="PodumShell">
+  <br><em>Screenshot PodumShell</em>
+</p>
+
 ## Requirements
 
 - make
@@ -102,9 +109,10 @@
 
 ### **Method 1: Download from releases**
 1. Download `PodumatOS-x86_64.iso` from [Releases](https://github.com/PodumatOS/PodumatOS/releases).
-2. Create a **bootable USB drive** using **UltraISO, Rufus, etc**.
+2. Create a **bootable USB drive** using **UltraISO, Rufus, etc**. Build it as an ISO image, not DD.
   <p align="center">
-    <img src="assets/rufus_example.png" width="256" alt="Example">
+    <img src="assets/rufus_example.png" width="400" alt="Example">
+    <br><em>Configuration example</em>
   </p>
 3. Depending on your motherboard, boot from the USB flash drive.
 
