@@ -58,7 +58,7 @@
 |------|-------|
 | **xHCI** | USB 3.0 host controller. |
 | **AHCI NCQ** | Native Command Queuing. Up to 32 queued ATA commands |
-| **NVme** | Disk partitioning, reading/writing NVMe controller |
+| **NVMe** | Disk partitioning, reading/writing NVMe controller |
 | **ext2** | ext2 filesystem for OS installation. |
 | **e1000** | Intel 82540EM network driver (QEMU) |
 | **RTL8169** | Realtek RTL8111/8168 network driver |
@@ -81,10 +81,47 @@
 
 ## Requirements
 
-- GNU make
-- A C/C++ compiler with freestanding support (GCC or Clang)
-- nasm (for assembly)
-- xorriso (for ISO creation)
-- mtools, sgdisk (for HDD image)
-- curl, git (for downloading dependencies)
-- QEMU (for running)
+- make
+- gcc
+- g++
+- ld
+- objcopy
+- nasm
+- xorriso
+- mtools
+- sgdisk
+- curl
+- git
+- tar
+- gunzip
+- bash
+- qemu-system-x86_64
+- qemu-img
+
+## 📥 How to install an OS?
+
+### **Method 1: Download from releases**
+1. Download `PodumatOS-x86_64.iso` from [Releases](https://github.com/PodumatOS/PodumatOS/releases).
+2. Create a **bootable USB drive** using **UltraISO, Rufus, etc**.
+  <p align="center">
+    <img src="assets/rufus_example.png" width="256" alt="Example">
+  </p>
+3. Depending on your motherboard, boot from the USB flash drive.
+
+### **Method 2: Pack it yourself**
+1. Download the entire source archive from this repository.
+2. Install the necessary dependencies listed above.
+3. Enter the commands below (for example, in **MSYS UCRT64**):
+```bash
+./build.sh clean
+./build.sh build
+```
+4. You can also turn the flash drive into a bootable one (rufus) or launch it in **QEMU**:
+```bash
+./start.sh
+```
+
+## 📜 License
+**BSD 2-Clause License**
+
+**Copyright (c) 2026, Thinking Developer**
