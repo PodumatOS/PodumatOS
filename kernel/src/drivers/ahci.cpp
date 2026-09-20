@@ -292,8 +292,6 @@ namespace ahci {
         port_write(p, P_CMD, cmd);
     }
 
-    // После port_start контроллер сам поднимает FR и CR в 1 —
-    // ждём именно УСТАНОВКИ этих битов, а не сброса.
     static bool wait_port_ready(int p) {
         for (int i = 0; i < PORT_START_TIMEOUT; i++) {
             uint32_t cmd = port_read(p, P_CMD);
@@ -327,9 +325,8 @@ namespace ahci {
         return -1;
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  Port init
-    // ═══════════════════════════════════════════════════════
+
+    //  port init
     static bool init_port(int p) {
         serial_puts("[ahci] init_port starting\n");
         port_stop(p);
@@ -370,9 +367,7 @@ namespace ahci {
         return true;
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  Transfer
-    // ═══════════════════════════════════════════════════════
+    //  transfer
     static bool ahci_transfer(int p, const uint8_t* fis, uint64_t buf_phys,
                               uint32_t buf_size, bool write) {
         if (!wait_not_busy(p)) return false;
@@ -494,9 +489,7 @@ namespace ahci {
         return true;
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  Public init
-    // ═══════════════════════════════════════════════════════
+    //  public init
     bool init(uint64_t hhdm_offset) {
         g_hhdm  = hhdm_offset;
         g_abar  = nullptr;
@@ -652,4 +645,4 @@ namespace ahci {
         return true;
     }
 
-} // namespace ahci
+}
