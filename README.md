@@ -26,12 +26,8 @@
 
 <br>
 
----
-
----
-> [!NOTICE]
-> ## Перед использованием программы обязательно ознакомьтесь с [EULA.md — лицензионное соглашение](https://github.com/2M12/DeNuitkanizator/blob/main/EULA.md)
----
+> [!NOTE]
+> ## You can view the documentation [here](https://github.com/PodumatOS/Docs). By using this operating system, you agree to the [EULA](https://github.com/PodumatOS/PodumatOS/blob/main/EULA.txt).
 
 ## What was this operating system created for?
 **PodumatOS** is designed for specific goals:
