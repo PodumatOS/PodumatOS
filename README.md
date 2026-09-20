@@ -77,7 +77,7 @@
 | **PIT** | Programmable Interval Timer (100 Hz) |
 | **DMA** | DMA memory allocator |
 | **Console** | Framebuffer text console |
-| **Shell** | Interactive |
+| **Shell** | Interactive Shell|
 
 ## Screenshots
 
