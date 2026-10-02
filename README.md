@@ -109,7 +109,7 @@
 
 ### **Method 1: Download from releases**
 1. Download `PodumatOS-x86_64.iso` from [Releases](https://github.com/PodumatOS/PodumatOS/releases).
-2. Create a **bootable USB drive** using **UltraISO, Rufus, etc**. Build it as an ISO image, not DD.
+2. Create a **bootable USB drive** using **UltraISO, Rufus, etc**. Build it as an DD image.
   <p align="center">
     <img src="assets/rufus_example.png" width="400" alt="Example">
     <br><em>Configuration example</em>
