@@ -8,7 +8,7 @@
   <h4>A customizable hobby OS for x86_64. Written from scratch in C++ and NASM. Booted by Limine. Built for transparency and simplicity.</h4>
 
 ![License](https://img.shields.io/badge/BSD%202--Clause-E84A4A?style=for-the-badge&logo=freebsd&logoColor=white)
-![Version](https://img.shields.io/badge/version-0.1-0898FF?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.2-0898FF?style=for-the-badge)
 
 ![C++](https://img.shields.io/badge/C++-0898FF?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![NASM](https://img.shields.io/badge/NASM-4A67E8?style=for-the-badge&logo=intel&logoColor=white)
