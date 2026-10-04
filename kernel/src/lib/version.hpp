@@ -9,7 +9,7 @@
 namespace version {
 
     constexpr const char* OS_NAME    = "PodumatOS";
-    constexpr const char* OS_VERSION = "0.1.0";
+    constexpr const char* OS_VERSION = "0.2.0";
 
 #if defined(__x86_64__)
     constexpr const char* ARCH = "x86_64";
