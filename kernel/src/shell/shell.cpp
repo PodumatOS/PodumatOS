@@ -11,18 +11,23 @@
 namespace shell {
     void run() {
         console::puts("Welcome to PodumatOS v0.1\n");
+        console::puts("Type 'help' for a list of commands.\n\n");
 
         char buffer[256];
         int pos = 0;
 
         while (true) {
-            console::puts("root@podumatos: ");
+            commands::shell_print_prompt();
+
             pos = 0;
             buffer[0] = '\0';
 
             while (true) {
                 char c = input::get_char();
-                if (c == 0) continue;
+                if (c == 0) {
+                    asm volatile("pause");
+                    continue;
+                }
 
                 if (c == '\n') {
                     console::putc('\n');
@@ -33,7 +38,7 @@ namespace shell {
                         pos--;
                         console::backspace();
                     }
-                } else if (pos < 255) {
+                } else if (c >= 32 && pos < 255) {
                     buffer[pos++] = c;
                     console::putc(c);
                 }

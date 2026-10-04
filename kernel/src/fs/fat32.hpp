@@ -109,6 +109,7 @@ namespace fat32 {
 
     bool cd(const char* path);
     void pwd();
+    void get_path(char* buf, std::size_t size);
     void list_dir(const char* path);
 
     bool file_exists(const char* path);

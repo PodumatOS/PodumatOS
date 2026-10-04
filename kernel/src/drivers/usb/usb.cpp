@@ -5,6 +5,7 @@
 
 #include "drivers/usb/usb.hpp"
 #include "drivers/usb/ehci.hpp"
+#include "drivers/usb/xhci.hpp"
 #include "lib/memory.hpp"
 #include "io/io.hpp"
 
@@ -56,6 +57,9 @@ namespace usb {
         sp.wIndex        = wIndex;
         sp.wLength       = wLength;
 
+        if (xhci::is_present()) {
+            return xhci::control(addr, mps, (const uint8_t*)&sp, data, wLength);
+        }
         return ehci::control(addr, mps, (const uint8_t*)&sp, data, wLength);
     }
 
@@ -145,7 +149,7 @@ namespace usb {
         serial_dec(total_len);
         serial_puts("\n");
         if (total_len == 0 || total_len > 4096) return false;
-		
+
         uint8_t cfg_buf[4096];
         memset(cfg_buf, 0, sizeof(cfg_buf));
         if (!get_descriptor(new_addr, mps0, DESC_CONFIGURATION, 0, 0, cfg_buf, total_len)) {
@@ -161,7 +165,6 @@ namespace usb {
         serial_puts("\n");
 
         if (full_cd->bConfigurationValue == 0) return false;
-
 
         if (!set_configuration(new_addr, mps0, full_cd->bConfigurationValue)) {
             serial_puts("[usb] SET_CONFIGURATION failed\n");

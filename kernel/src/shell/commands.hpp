@@ -37,9 +37,11 @@ namespace commands {
     void set_firmware_type(std::uint64_t type);
     void set_cmdline(const char* cmdline);
     void set_boot_timestamp(std::int64_t ts);
-	void set_acpi_rsdp(void* rsdp_phys, std::uint64_t hhdm);
+    void set_acpi_rsdp(void* rsdp_phys, std::uint64_t hhdm);
 
     void execute(const char* cmd);
+    void shell_print_prompt();
+
     void neofetch();
     void shutdown();
     void emerdown();
@@ -50,11 +52,14 @@ namespace commands {
     void lspci();
     void diskinfo();
     void disktest();
+	void heaptest_cmd();
     void diskread(const char* args);
     void diskwrite(const char* args);
     void fdisk(const char* args);
     void format(const char* args);
     void mount_cmd(const char* args);
+    void unmount_cmd(const char* args);
+    void switch_cmd(const char* args);
     void drives();
     void cd_cmd(const char* args);
     void pwd_cmd();

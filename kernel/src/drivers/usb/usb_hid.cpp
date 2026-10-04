@@ -5,6 +5,7 @@
 
 #include "drivers/usb/usb_hid.hpp"
 #include "drivers/usb/ehci.hpp"
+#include "drivers/usb/xhci.hpp"
 #include "drivers/usb/usb.hpp"
 #include "kernel/pit.hpp"
 #include "lib/memory.hpp"
@@ -59,6 +60,16 @@ namespace usb_hid {
         for (int j = i - 1; j >= 0; j--) out[k++] = buf[j];
         out[k] = 0;
         serial_puts(out);
+    }
+
+    // USB backend dispatch
+    static bool bus_intr_open(uint8_t addr, uint8_t ep, uint16_t mps, uint8_t interval) {
+        if (xhci::is_present()) return xhci::intr_open(addr, ep, mps, interval);
+        return ehci::intr_open(addr, ep, mps, interval);
+    }
+    static bool bus_intr_read(void* out, uint16_t len) {
+        if (xhci::is_present()) return xhci::intr_read(out, len);
+        return ehci::intr_read(out, len);
     }
 
     static const char g_map_lo[256] = {
@@ -222,8 +233,8 @@ namespace usb_hid {
         memset(g_prev, 0, 8);
         memset(g_curr, 0, 8);
 
-        if (!ehci::is_present()) {
-            serial_puts("[hid] ehci not present\n");
+        if (!ehci::is_present() && !xhci::is_present()) {
+            serial_puts("[hid] no USB controller present\n");
             return false;
         }
 
@@ -267,7 +278,7 @@ namespace usb_hid {
         usb::send_setup(g_dev_addr, mps0, 0x21, 0x0B, 0x0000, g_iface_num, 0, nullptr);
         usb::send_setup(g_dev_addr, mps0, 0x21, 0x0A, 0x0000, g_iface_num, 0, nullptr);
 
-        if (!ehci::intr_open(g_dev_addr, g_ep_num, g_ep_mps, g_ep_interval)) {
+        if (!bus_intr_open(g_dev_addr, g_ep_num, g_ep_mps, g_ep_interval)) {
             serial_puts("[hid] intr_open failed\n");
             return false;
         }
@@ -283,7 +294,7 @@ namespace usb_hid {
         uint8_t report[8];
         memset(report, 0, 8);
 
-        if (!ehci::intr_read(report, 8)) {
+        if (!bus_intr_read(report, 8)) {
             goto check_repeat;
         }
 

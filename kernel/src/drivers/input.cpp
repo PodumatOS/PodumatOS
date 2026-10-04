@@ -6,6 +6,7 @@
 #include "drivers/input.hpp"
 #include "drivers/ps2.hpp"
 #include "drivers/usb/ehci.hpp"
+#include "drivers/usb/xhci.hpp"
 #include "drivers/usb/usb_hid.hpp"
 
 namespace input {
@@ -14,6 +15,13 @@ namespace input {
 
     bool init(uint64_t hhdm_offset) {
         g_source = Source::NONE;
+
+        if (xhci::init(hhdm_offset)) {
+            if (usb_hid::init()) {
+                g_source = Source::USB;
+                return true;
+            }
+        }
 
         if (ehci::init(hhdm_offset)) {
             if (usb_hid::init()) {
@@ -63,8 +71,8 @@ namespace input {
     void poll() {
         if (g_source == Source::USB) usb_hid::poll();
     }
-	
-	void stop() {
+
+    void stop() {
         g_source = Source::NONE;
     }
 

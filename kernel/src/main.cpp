@@ -18,11 +18,15 @@
 #include "drivers/disk.hpp"
 #include "fs/mbr.hpp"
 #include "fs/fat32.hpp"
+#include "fs/ext2.hpp"
+#include "fs/mount_config.hpp"
 #include "drivers/dma.hpp"
 #include "drivers/input.hpp"
 #include "lib/dmi.hpp"
 #include "lib/driver_registry.hpp"
 #include "lib/version.hpp"
+#include "mm/phys.hpp"
+#include "mm/heap.hpp"
 
 // colors
 static constexpr std::uint32_t COLOR_BLACK  = 0x000000;
@@ -76,7 +80,6 @@ static void print_fail(const char* msg) {
     console::puts("\n");
 }
 
-// ascii logo
 static void print_banner() {
     console::set_color(COLOR_BLUE, COLOR_BLACK);
     console::puts("__________          .___                    __  ________    _________\n");
@@ -106,6 +109,12 @@ static void debug_hex64(std::uint64_t v) {
     static const char hex[] = "0123456789ABCDEF";
     console::puts("0x");
     for (int i = 60; i >= 0; i -= 4) console::putc(hex[(v >> i) & 0xF]);
+}
+
+static void debug_hex8(std::uint8_t v) {
+    static const char hex[] = "0123456789ABCDEF";
+    console::putc(hex[(v >> 4) & 0xF]);
+    console::putc(hex[v & 0xF]);
 }
 
 namespace {
@@ -274,7 +283,6 @@ extern "C" void kmain() {
         commands::set_boot_timestamp(date_at_boot_request.response->timestamp);
     }
 
-    // cpuid
     commands::init_cpuinfo();
     print_ok("CPUID info gathered");
 
@@ -326,7 +334,6 @@ extern "C" void kmain() {
     debug_u64(pci::get_device_count());
     console::putc('\n');
 
-    // HHDM offset
     uint64_t hhdm_offset = 0;
     if (hhdm_request.response != nullptr) {
         hhdm_offset = hhdm_request.response->offset;
@@ -366,29 +373,34 @@ extern "C" void kmain() {
         print_warn("No SMBIOS from Limine");
     }
 
-    // acpi
     if (rsdp_request.response != nullptr && rsdp_request.response->address != nullptr) {
         commands::set_acpi_rsdp(rsdp_request.response->address, hhdm_offset);
     } else {
         print_warn("No RSDP from Limine - ACPI poweroff unavailable");
     }
 
-    // dma bump allocator
     if (memmap_request.response != nullptr) {
         dma::init(memmap_request.response, hhdm_offset);
+
         if (dma::is_initialized()) {
             console::set_color(COLOR_CYAN, COLOR_BLACK);
-            console::puts(" [INFO] DMA region phys=");
+            console::puts(" [INFO] Physical pages: ");
             console::set_color(COLOR_GRAY, COLOR_BLACK);
-            debug_hex64(dma::get_phys_base());
-            console::puts(" size=");
-            debug_u64(dma::get_size() / (1024 * 1024));
-            console::puts(" MB\n");
-            print_ok("DMA bump allocator ready");
+            debug_u64(phys::free_pages());
+            console::puts(" free / ");
+            debug_u64(phys::total_pages());
+            console::puts(" total (");
+            debug_u64((phys::total_pages() * 4096) / (1024 * 1024));
+            console::puts(" MB total, ");
+            debug_u64((phys::used_pages() * 4096) / (1024 * 1024));
+            console::puts(" MB used)\n");
+            print_ok("Physical page allocator ready");
         } else {
-            print_warn("DMA region not found (need 16 MB usable)");
+            print_warn("Physical page allocator not initialized");
         }
     }
+	heap::init();
+	print_ok("Kernel heap initialized");
 
     if (input::init(hhdm_offset)) {
         console::set_color(COLOR_CYAN, COLOR_BLACK);
@@ -401,7 +413,6 @@ extern "C" void kmain() {
         print_warn("No input device found");
     }
 
-    // ─── Block device: AHCI → fallback ATA ───
     if (disk::init(hhdm_offset)) {
         console::set_color(COLOR_CYAN, COLOR_BLACK);
         console::puts(" [INFO] Block driver: ");
@@ -413,7 +424,8 @@ extern "C" void kmain() {
         console::puts(" [INFO] Disk: ");
         console::set_color(COLOR_GRAY, COLOR_BLACK);
         console::puts(disk::info.model);
-        console::puts(" ("); debug_u64(disk::info.sectors / 2048); console::puts(" MB)\n");
+        std::uint64_t total_sectors = disk::info.lba48 ? disk::info.sectors48 : disk::info.sectors;
+        console::puts(" ("); debug_u64(total_sectors / 2048); console::puts(" MB)\n");
         print_ok("Block device initialized");
     } else {
         print_warn("No ATA/AHCI disk found");
@@ -421,39 +433,66 @@ extern "C" void kmain() {
 
     if (disk::info.present) {
         mbr::MBR m;
-        if (mbr::read(&m)) {
-            if (m.signature == 0xAA55) {
-                print_ok("MBR signature valid (0xAA55)");
+        if (mbr::read(&m) && m.signature == 0xAA55) {
+            print_ok("MBR signature valid (0xAA55)");
 
-                char next_letter = 'C';
-                for (int i = 0; i < 4; i++) {
-                    uint8_t type = m.partitions[i].type;
-                    if (type == 0x0B || type == 0x0C) {
-                        console::set_color(COLOR_CYAN, COLOR_BLACK);
-                        console::puts(" [INFO] Found FAT32 at LBA ");
-                        console::set_color(COLOR_GRAY, COLOR_BLACK);
-                        debug_u64(m.partitions[i].lba_start);
-                        console::putc('\n');
+            bool any_partition = false;
+            for (int i = 0; i < 4; i++) {
+                uint8_t type = m.partitions[i].type;
+                if (type == 0) continue;
+                any_partition = true;
 
-                        if (fat32::mount(m.partitions[i].lba_start, next_letter)) {
-                            console::set_color(COLOR_GREEN, COLOR_BLACK);
-                            console::puts(" [ OK ] Mounted as ");
-                            console::putc(next_letter);
-                            console::puts(":\n");
-                            console::set_color(COLOR_GRAY, COLOR_BLACK);
-                            next_letter++;
-                            if (next_letter > 'Z') break;
-                        } else {
-                            print_warn("Mount failed");
-                        }
-                    }
-                }
-            } else {
-                print_warn("No valid MBR signature");
+                console::set_color(COLOR_CYAN, COLOR_BLACK);
+                console::puts(" [INFO] Partition ");
+                console::putc((char)('0' + i));
+                console::puts(": type=0x");
+                console::set_color(COLOR_GRAY, COLOR_BLACK);
+                debug_hex8(type);
+                console::puts("  lba=");
+                debug_u64(m.partitions[i].lba_start);
+                console::puts("  size=");
+                debug_u64(m.partitions[i].sector_count / 2048);
+                console::puts(" MB  (");
+                console::puts(mbr::type_name(type));
+                console::puts(")\n");
             }
+
+            if (any_partition) {
+                print_info("Use 'mount <letter>: <lba>' to mount a partition");
+            } else {
+                print_info("No partitions found. Use 'fdisk create ...' to create one.");
+            }
+
+            // ─── Restore the last saved mount (persisted across reboot) ───
+			mount_config::Entry saved;
+			if (mount_config::get_last(&saved)) {
+                console::set_color(COLOR_CYAN, COLOR_BLACK);
+                console::puts(" [INFO] Restoring saved mount: ");
+                console::set_color(COLOR_GRAY, COLOR_BLACK);
+                console::putc(saved.letter);
+                console::puts(": at LBA ");
+                debug_u64(saved.lba);
+                console::putc('\n');
+
+                bool restored = false;
+                if (saved.fs_type == mount_config::FS_EXT2) {
+                    restored = ext2::mount(saved.lba, saved.letter);
+                } else if (saved.fs_type == mount_config::FS_FAT32) {
+                    restored = fat32::mount(saved.lba, saved.letter);
+                }
+
+                if (restored) {
+                    print_ok("Mount restored from config sector");
+                } else {
+                    print_warn("Saved mount no longer valid — clearing config");
+                    mount_config::clear();
+                }
+            }
+        } else {
+            print_warn("No valid MBR signature. Use 'fdisk init' to create one.");
         }
     } else {
-        print_info("No disk, skipping FAT32 mount");
+        print_info("No disk, skipping filesystem setup");
     }
 
     driver_registry::clear();
@@ -470,10 +509,12 @@ extern "C" void kmain() {
         driver_registry::add("block", "no disk", false);
     }
 
-    if (fat32::is_mounted()) {
+    if (ext2::is_mounted()) {
+        driver_registry::add("ext2", "mounted", true);
+    } else if (fat32::is_mounted()) {
         driver_registry::add("fat32", "mounted", true);
     } else {
-        driver_registry::add("fat32", "not mounted", false);
+        driver_registry::add("fs", "not mounted", false);
     }
 
     asm volatile("sti");

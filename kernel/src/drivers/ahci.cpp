@@ -325,8 +325,7 @@ namespace ahci {
         return -1;
     }
 
-
-    //  port init
+    //  Port init
     static bool init_port(int p) {
         serial_puts("[ahci] init_port starting\n");
         port_stop(p);
@@ -367,7 +366,7 @@ namespace ahci {
         return true;
     }
 
-    //  transfer
+    //  Transfer
     static bool ahci_transfer(int p, const uint8_t* fis, uint64_t buf_phys,
                               uint32_t buf_size, bool write) {
         if (!wait_not_busy(p)) return false;
@@ -489,7 +488,7 @@ namespace ahci {
         return true;
     }
 
-    //  public init
+    //  Public init
     bool init(uint64_t hhdm_offset) {
         g_hhdm  = hhdm_offset;
         g_abar  = nullptr;

@@ -12,6 +12,8 @@ namespace fat32 {
 
     FS fs;
 
+    static constexpr uint32_t MIN_SECTORS = 2048;
+
     static void print_dec(uint32_t v) {
         if (v == 0) { console::putc('0'); return; }
         char buf[12]; int i = 0;
@@ -123,6 +125,17 @@ namespace fat32 {
 
     static void name_to_83(const char* name, char* out) {
         for (int i = 0; i < 11; i++) out[i] = ' ';
+
+        if (name[0] == '.' && name[1] == '\0') {
+            out[0] = '.';
+            return;
+        }
+        if (name[0] == '.' && name[1] == '.' && name[2] == '\0') {
+            out[0] = '.';
+            out[1] = '.';
+            return;
+        }
+
         int i = 0, j = 0;
         while (name[i] && name[i] != '.' && j < 8) {
             char c = name[i++];
@@ -255,7 +268,7 @@ namespace fat32 {
         if (!fs.mounted) return false;
         if (path[0] == '/' && path[1] == '\0') return false;
 
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
 
         DirEntry entry;
         if (!find_entry(fs.current_cluster, path, &entry, nullptr, nullptr)) {
@@ -281,7 +294,7 @@ namespace fat32 {
 
     bool write_file(const char* path, const uint8_t* data, uint32_t size) {
         if (!fs.mounted) return false;
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
 
         DirEntry old;
         if (find_entry(fs.current_cluster, path, &old, nullptr, nullptr)) {
@@ -330,7 +343,7 @@ namespace fat32 {
 
     bool create_dir(const char* path) {
         if (!fs.mounted) return false;
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
 
         uint32_t c = alloc_cluster();
         if (c == 0) return false;
@@ -360,7 +373,7 @@ namespace fat32 {
 
     bool delete_file(const char* path) {
         if (!fs.mounted) return false;
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
 
         DirEntry entry;
         uint32_t lba, off;
@@ -374,67 +387,101 @@ namespace fat32 {
     }
 
     bool cd(const char* path) {
-        if (!fs.mounted) return false;
+        if (!fs.mounted || !path) return false;
 
-        if (path[0] == '.' && path[1] == '.' && path[2] == '\0') {
-            if (fs.current_cluster == fs.root_cluster) return true;
-            if (fs.path.depth > 0) fs.path.depth--;
-
-            DirEntry d;
-            if (find_entry(fs.current_cluster, "..", &d, nullptr, nullptr)) {
-                uint32_t c = ((uint32_t)d.cluster_high << 16) | d.cluster_low;
-                fs.current_cluster = (c == 0) ? fs.root_cluster : c;
-                return true;
-            }
-            return false;
+        uint32_t save_cluster = fs.current_cluster;
+        int save_depth = fs.path.depth;
+        char save_names[32][13];
+        uint32_t save_clusters[32];
+        for (int i = 0; i < fs.path.depth; i++) {
+            for (int k = 0; k < 13; k++) save_names[i][k] = fs.path.names[i][k];
+            save_clusters[i] = fs.path.clusters[i];
         }
 
-        if (path[0] == '/' && path[1] == '\0') {
+        bool ok = true;
+
+        if (path[0] == '/' || path[0] == '\\') {
             fs.current_cluster = fs.root_cluster;
             fs.path.depth = 0;
-            return true;
+            path++;
         }
 
         const char* p = path;
-        if (p[0] == '/') p++;
+        while (*p && ok) {
+            char comp[64];
+            int i = 0;
+            while (*p && *p != '/' && *p != '\\' && i < 63) comp[i++] = *p++;
+            comp[i] = '\0';
+            if (*p) p++;
+            if (i == 0) continue;
 
-        DirEntry d;
-        if (find_entry(fs.current_cluster, p, &d, nullptr, nullptr)) {
-            if (d.attr & ATTR_DIRECTORY) {
-                uint32_t c = ((uint32_t)d.cluster_high << 16) | d.cluster_low;
-                fs.current_cluster = (c == 0) ? fs.root_cluster : c;
+            if (strcmp(comp, ".") == 0) continue;
 
-                if (fs.path.depth < 32) {
-                    int i = 0;
-                    while (p[i] && i < 12) {
-                        fs.path.names[fs.path.depth][i] = p[i];
-                        i++;
-                    }
-                    fs.path.names[fs.path.depth][i] = '\0';
-                    fs.path.clusters[fs.path.depth] = fs.current_cluster;
-                    fs.path.depth++;
+            if (strcmp(comp, "..") == 0) {
+                if (fs.current_cluster == fs.root_cluster) continue;
+                DirEntry d;
+                if (find_entry(fs.current_cluster, "..", &d, nullptr, nullptr)) {
+                    uint32_t c = ((uint32_t)d.cluster_high << 16) | d.cluster_low;
+                    fs.current_cluster = (c == 0) ? fs.root_cluster : c;
+                    if (fs.path.depth > 0) fs.path.depth--;
                 }
-                return true;
+                continue;
+            }
+
+            DirEntry d;
+            if (!find_entry(fs.current_cluster, comp, &d, nullptr, nullptr)) {
+                ok = false; break;
+            }
+            if (!(d.attr & ATTR_DIRECTORY)) {
+                ok = false; break;
+            }
+            uint32_t c = ((uint32_t)d.cluster_high << 16) | d.cluster_low;
+            fs.current_cluster = (c == 0) ? fs.root_cluster : c;
+            if (fs.path.depth < 32) {
+                int k = 0;
+                while (comp[k] && k < 12) { fs.path.names[fs.path.depth][k] = comp[k]; k++; }
+                fs.path.names[fs.path.depth][k] = '\0';
+                fs.path.clusters[fs.path.depth] = fs.current_cluster;
+                fs.path.depth++;
             }
         }
-        return false;
+
+        if (!ok) {
+            fs.current_cluster = save_cluster;
+            fs.path.depth = save_depth;
+            for (int i = 0; i < save_depth; i++) {
+                for (int k = 0; k < 13; k++) fs.path.names[i][k] = save_names[i][k];
+                fs.path.clusters[i] = save_clusters[i];
+            }
+        }
+        return ok;
+    }
+
+    void get_path(char* buf, std::size_t size) {
+        std::size_t pos = 0;
+        const char* root = "root";
+        for (int i = 0; root[i] && pos + 1 < size; i++) buf[pos++] = root[i];
+        for (int d = 0; d < fs.path.depth && pos + 1 < size; d++) {
+            if (pos + 1 < size) buf[pos++] = '/';
+            for (int i = 0; fs.path.names[d][i] && pos + 1 < size; i++) {
+                buf[pos++] = fs.path.names[d][i];
+            }
+        }
+        buf[pos] = '\0';
     }
 
     void pwd() {
-        console::putc(fs.drive_letter);
-        console::puts(":\\");
-        for (int i = 0; i < fs.path.depth; i++) {
-            console::puts(fs.path.names[i]);
-            if (i < fs.path.depth - 1) console::putc('\\');
-        }
+        char buf[512];
+        get_path(buf, sizeof(buf));
+        console::puts(buf);
     }
 
     void list_dir(const char* path) {
         if (!fs.mounted) { console::puts("FAT32 not mounted\n"); return; }
 
         uint32_t cluster = fs.current_cluster;
-        if (path[0] && !(path[0] == '/' && path[1] == '\0')) {
-            if (path[0] == '/') path++;
+        if (path && path[0] && !(path[0] == '/' && path[1] == '\0')) {
+            if (path[0] == '/' || path[0] == '\\') path++;
             DirEntry d;
             if (!find_entry(fs.current_cluster, path, &d, nullptr, nullptr)) {
                 console::puts("Directory not found\n");
@@ -491,14 +538,14 @@ namespace fat32 {
 
     bool file_exists(const char* path) {
         if (!fs.mounted) return false;
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
         DirEntry e;
         return find_entry(fs.current_cluster, path, &e, nullptr, nullptr);
     }
 
     uint32_t file_size(const char* path) {
         if (!fs.mounted) return 0;
-        if (path[0] == '/') path++;
+        if (path[0] == '/' || path[0] == '\\') path++;
         DirEntry e;
         if (!find_entry(fs.current_cluster, path, &e, nullptr, nullptr)) return 0;
         return e.file_size;
@@ -506,25 +553,34 @@ namespace fat32 {
 
     bool format(uint32_t partition_lba, uint32_t sector_count) {
         if (!disk::info.present) return false;
-        if (sector_count < 65536) return false;
+
+        if (sector_count < MIN_SECTORS) return false;
 
         uint16_t bytes_per_sector    = 512;
         uint8_t  sectors_per_cluster = 1;
 
-        if (sector_count > 260000)      sectors_per_cluster = 8;
-        else if (sector_count > 65000)  sectors_per_cluster = 4;
-        else if (sector_count > 16000)  sectors_per_cluster = 2;
+        if (sector_count >= 260000)      sectors_per_cluster = 8;
+        else if (sector_count >= 65000)  sectors_per_cluster = 4;
+        else if (sector_count >= 16000)  sectors_per_cluster = 2;
+        else                             sectors_per_cluster = 1;
 
         uint32_t total_sectors    = sector_count;
         uint16_t reserved_sectors = 32;
         uint8_t  num_fats         = 2;
 
-        uint32_t cluster_count = (total_sectors - reserved_sectors) /
-                                 (sectors_per_cluster + 2);
-        uint32_t fat_size_sectors = ((cluster_count + 2) * 4 + 511) / 512;
+        uint32_t cluster_count     = (total_sectors - reserved_sectors) /
+                                     (sectors_per_cluster + 2);
+        uint32_t fat_size_sectors  = 0;
+        for (int iter = 0; iter < 8; iter++) {
+            fat_size_sectors = ((cluster_count + 2) * 4 + 511) / 512;
+            uint32_t data_sectors = total_sectors - reserved_sectors -
+                                    num_fats * fat_size_sectors;
+            uint32_t new_cc = data_sectors / sectors_per_cluster;
+            if (new_cc == cluster_count) break;
+            cluster_count = new_cc;
+        }
 
-        uint32_t data_sectors = total_sectors - reserved_sectors - num_fats * fat_size_sectors;
-        cluster_count = data_sectors / sectors_per_cluster;
+        if (cluster_count < 16) return false;
 
         uint8_t bs[512];
         for (int i = 0; i < 512; i++) bs[i] = 0;

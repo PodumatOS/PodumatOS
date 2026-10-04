@@ -3,52 +3,10 @@
 ;
 ; PodumatOS — a hobby operating system for x86_64.
 
-
 [bits 64]
 section .text
 
 extern irq_handler
-
-%macro SERIAL_CHAR 1
-    push rax
-    push rdx
-    mov al, %1
-    mov dx, 0x3F8
-    out dx, al
-    pop rdx
-    pop rax
-%endmacro
-
-%macro SERIAL_HEX 1
-    push rax
-    push rdx
-    push rbx
-    mov bl, %1
-    mov al, bl
-    shr al, 4
-    cmp al, 10
-    jb %%lo1
-    add al, 'A' - 10
-    jmp %%out1
-%%lo1:
-    add al, '0'
-%%out1:
-    mov dx, 0x3F8
-    out dx, al
-    mov al, bl
-    and al, 0x0F
-    cmp al, 10
-    jb %%lo2
-    add al, 'A' - 10
-    jmp %%out2
-%%lo2:
-    add al, '0'
-%%out2:
-    out dx, al
-    pop rbx
-    pop rdx
-    pop rax
-%endmacro
 
 %macro pushaq 0
     push rax
@@ -89,10 +47,6 @@ extern irq_handler
 %macro ISR_NOERRCODE 1
 global isr%1
 isr%1:
-    SERIAL_CHAR 'I'
-    SERIAL_HEX %1
-    SERIAL_CHAR 0x0A
-
     push 0
     push %1
     pushaq
@@ -111,12 +65,25 @@ isr%1:
     iretq
 %endmacro
 
+ISR_NOERRCODE 32
+ISR_NOERRCODE 33
+ISR_NOERRCODE 34
+ISR_NOERRCODE 35
+ISR_NOERRCODE 36
+ISR_NOERRCODE 37
+ISR_NOERRCODE 38
+ISR_NOERRCODE 39
+ISR_NOERRCODE 40
+ISR_NOERRCODE 41
+ISR_NOERRCODE 42
+ISR_NOERRCODE 43
+ISR_NOERRCODE 44
+ISR_NOERRCODE 45
+ISR_NOERRCODE 46
+ISR_NOERRCODE 47
+
 global isr_default
 isr_default:
-    SERIAL_CHAR 'I'
-    SERIAL_HEX 0xFF
-    SERIAL_CHAR 0x0A
-
     push 0
     push 255
     pushaq
@@ -133,6 +100,3 @@ isr_default:
     popaq
     add rsp, 16
     iretq
-
-ISR_NOERRCODE 32
-ISR_NOERRCODE 33
