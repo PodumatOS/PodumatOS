@@ -30,8 +30,8 @@ echo ""
 echo "   2) Newer        - q35, AHCI, USB 2.0 (EHCI + usb-kbd)"
 echo "                     (not XHCI)"
 echo ""
-echo "   3) Now          - q35, NVMe, USB 3.0 (XHCI + usb-kbd)"
-echo "														  "
+echo "   3) Now          - q35, AHCI, USB 3.0 (XHCI + usb-kbd)"
+echo "                     (not EHCI, no NVMe)"
 echo ""
 echo "   0) Exit"
 echo ""
@@ -101,13 +101,10 @@ case "$CHOICE" in
         ;;
 
     3)
-        echo "  Platform: Now (q35 + NVMe + XHCI)"
+        echo "  Platform: Now (q35 + AHCI + XHCI)"
         echo "  ISO:      PodumatOS-x86_64.iso"
-        echo "  Disk:     disk.img (64 MB, NVMe)"
+        echo "  Disk:     disk.img (64 MB, AHCI)"
         echo "  USB:      XHCI + usb-kbd"
-        echo ""
-        echo "  NOTE: NVMe и XHCI драйверы ещё не реализованы."
-        echo "        Система должна загрузиться, но disk/usb не найдутся."
         echo ""
         echo "  Exit QEMU: Ctrl+A, X"
         echo ""
@@ -122,9 +119,9 @@ case "$CHOICE" in
             -cdrom PodumatOS-x86_64.iso \
             -boot d \
             \
-			-device nvme,serial=podumat,id=nvme0 \
-			-drive file=disk.img,format=raw,if=none,id=drv0 \
-			-device nvme-ns,drive=drv0,bus=nvme0
+            -device ahci,id=ahci0 \
+            -drive file=disk.img,format=raw,if=none,id=drv0,media=disk \
+            -device ide-hd,drive=drv0,bus=ahci0.0 \
             \
             -device qemu-xhci,id=xhci0 \
             -device usb-kbd,bus=xhci0.0,port=1 \
