@@ -51,15 +51,17 @@
 | **MBR** | MBR partition table. Create, delete, list partitions. |
 | **PCI** | PCI bus enumeration and device discovery. |
 | **DMA** | DMA-capable memory allocator for device drivers. |
+| **Bitmap phys allocator** | 4 KiB page frame allocator. Backs DMA and kernel heap. |
+| **Kernel heap (kmalloc)** | kmalloc / kfree / krealloc / kcalloc for dynamic kernel memory. |
+| **xHCI (WIP)** | USB 3.0 host controller. |
+| **ext2** | ext2 filesystem for OS installation. |
 
 ### Drivers in development/coming soon
 
 | Drivers | Notes |
 |------|-------|
-| **xHCI** | USB 3.0 host controller. |
 | **AHCI NCQ** | Native Command Queuing. Up to 32 queued ATA commands |
 | **NVMe** | Disk partitioning, reading/writing NVMe controller |
-| **ext2** | ext2 filesystem for OS installation. |
 | **e1000** | Intel 82540EM network driver (QEMU) |
 | **RTL8169** | Realtek RTL8111/8168 network driver |
 | **I225-V** | Intel I225/I226 2.5 Gbps network driver |
