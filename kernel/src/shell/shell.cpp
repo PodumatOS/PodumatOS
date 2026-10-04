@@ -10,7 +10,7 @@
 
 namespace shell {
     void run() {
-        console::puts("Welcome to PodumatOS v0.1\n");
+        console::puts("Welcome to PodumatOS v0.2\n");
         console::puts("Type 'help' for a list of commands.\n\n");
 
         char buffer[256];
