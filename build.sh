@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+# Copyright (c) 2026 Thinking Developer
+#
+# PodumatOS — a hobby operating system for x86_64.
+
 set -e   # exit on error
 
 cd "$(dirname "$0")"
