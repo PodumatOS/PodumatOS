@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-2-Clause
+// SPDX-License-Identifier: BSD-2-Clause-Patent
 // Copyright (c) 2026 Thinking Developer
 //
 // PodumatOS — a hobby operating system for x86_64.
